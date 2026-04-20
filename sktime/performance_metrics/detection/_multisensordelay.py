@@ -56,11 +56,10 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
         """
         if self.sensor_cols is None:
             raise ValueError(
-                "sensor_cols cannot be None — pass a list of column names, "
+                "sensor_cols cannot be None - pass a list of column names, "
                 "e.g. sensor_cols=['vibration_ilocs', 'acoustic_ilocs']."
             )
 
-        # re-use Aditya's univariate metric for each channel
         base = DetectionDelayMean(
             early_tolerance=self.early_tolerance,
             max_delay=self.max_delay,
