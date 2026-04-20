@@ -1,4 +1,5 @@
-"""Multi-sensor detection delay for time series event detection."""
+"""Multi-channel detection delay metric for time series event detection."""
+
 import numpy as np
 
 from sktime.performance_metrics.detection._base import BaseDetectionMetric
@@ -7,12 +8,14 @@ from sktime.performance_metrics.detection._detectiondelaymean import (
 )
 
 
-class MultiSensorDetectionDelay(BaseDetectionMetric):
-    r"""Detection delay metric that works across multiple sensor channels.
+class MultiChannelDetectionDelay(BaseDetectionMetric):
+    r"""Detection delay metric across multiple event-detection channels.
 
     A thin wrapper around ``DetectionDelayMean`` for cases where you have
-    more than one sensor stream and want a single number that summarises
-    how quickly the *system* (not just one sensor) caught an event.
+    more than one channel stream like multiple senosor, multiple microphones,
+    or multiple signal and want a single number that summarises
+    how quickly the *system* caught an event.
+
     """
 
     _tags = {
@@ -25,26 +28,26 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
 
     def __init__(
         self,
-        sensor_cols=None,
+        channel_cols=None,
         aggfunc="mean",
-        sensor_weights=None,
+        channel_weights=None,
         early_tolerance=0,
         max_delay=None,
     ):
-        self.sensor_cols = sensor_cols
+        self.channel_cols = channel_cols
         self.aggfunc = aggfunc
-        self.sensor_weights = sensor_weights
+        self.channel_weights = channel_weights
         self.early_tolerance = early_tolerance
         self.max_delay = max_delay
         super().__init__()
 
     def _evaluate(self, y_true, y_pred, X=None):
-        """Compute aggregated multi-sensor detection delay.
+        """Compute aggregated multi-channel detection delay.
 
         Parameters
         ----------
         y_true : pd.DataFrame
-            True event locations; one column per sensor.
+            True event locations; one column per channel.
         y_pred : pd.DataFrame
             Predicted event locations; same columns as ``y_true``.
         X : ignored
@@ -52,12 +55,12 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
         Returns
         -------
         float
-            Aggregated delay across all sensor channels.
+            Aggregated delay across all channels.
         """
-        if self.sensor_cols is None:
+        if self.channel_cols is None:
             raise ValueError(
-                "sensor_cols cannot be None - pass a list of column names, "
-                "e.g. sensor_cols=['vibration_ilocs', 'acoustic_ilocs']."
+                "channel_cols cannot be None - pass a list of column names, "
+                "e.g. channel_cols=['ch_0', 'ch_1']."
             )
 
         base = DetectionDelayMean(
@@ -66,7 +69,7 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
         )
 
         scores = []
-        for col in self.sensor_cols:
+        for col in self.channel_cols:
             y_t = y_true[[col]].rename(columns={col: "ilocs"}).dropna()
             y_p = y_pred[[col]].rename(columns={col: "ilocs"}).dropna()
             scores.append(base(y_t, y_p))
@@ -76,12 +79,9 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
         if self.aggfunc == "max":
             return float(np.max(scores))
         if self.aggfunc == "weighted":
-            if self.sensor_weights is None:
-                raise ValueError(
-                    "sensor_weights must be set when aggfunc='weighted'."
-                )
-            return float(np.average(scores, weights=self.sensor_weights))
-        # default: "mean"
+            if self.channel_weights is None:
+                raise ValueError("channel_weights must be set when aggfunc='weighted'.")
+            return float(np.average(scores, weights=self.channel_weights))
         return float(np.mean(scores))
 
     @classmethod
@@ -99,15 +99,11 @@ class MultiSensorDetectionDelay(BaseDetectionMetric):
         """
         return [
             {
-                "sensor_cols": ["vibration_ilocs", "acoustic_ilocs"],
+                "channel_cols": ["ch_0", "ch_1"],
                 "aggfunc": "mean",
             },
             {
-                "sensor_cols": [
-                    "vibration_ilocs",
-                    "acoustic_ilocs",
-                    "mechanical_ilocs",
-                ],
+                "channel_cols": ["ch_0", "ch_1", "ch_2", "ch_3"],
                 "aggfunc": "min",
                 "early_tolerance": 10,
                 "max_delay": 100,
