@@ -11,6 +11,7 @@ __author__ = [
 __all__ = [
     "BaseTimeSeriesForest",
     "_transform",
+    "_transform_multivariate",
     "_get_intervals",
     "_fit_estimator",
 ]
